@@ -4,6 +4,7 @@ const mongoose = require("mongoose")
 const bcrypt = require("bcrypt");
 const user = require("../models/user");
 const jwt = require("../services/jwt");
+const mongoosePagination = require("mongoose-paginate-v2")
 
 //Acciones de prueba
 const pruebaUser = (req, res) => {
@@ -14,6 +15,7 @@ const pruebaUser = (req, res) => {
 }
 
 const register = async (req, res) => {
+    console.log("body recibido", req.body)
     try {
         //Recoger datos de la peticion
         let params = req.body;
@@ -143,16 +145,95 @@ const login = async (req, res) => {
 
 
 const profile = async (req, res) => {
-    //Recibir el parametro del id del usuaro por la url
+    try {
+            //Recibir el parametro del id del usuaro por la url
+            const id = req.params.id;
 
-    //consulta para sacar los datos del usuario
+            //consulta para sacar los datos del usuario
+            const userProfile = await user.findById(id).select({password: 0, role: 0})
 
-    //Devolver resultado
+            if(!userProfile){
+                return res.status(404).send({
+                    status: "error",
+                    message: "el usuario no existe o hay un error."
+                })
+            }
+
+            return res.status(200).send({
+                status: "success",
+                user: userProfile
+            })
+           
+           
+
+            //Devolver resultado
+    } catch(e){
+        return res.status(500).json({
+            status: "error",
+            message: "Error interno del servidor",
+        }); 
+    }
+
+}
+
+const list = async (req, res) => {
+    try {
+
+        //Controlar en que pagina estamos
+        let page = 1;
+        if(req.params.page){
+            page = req.params.page
+        }
+
+        page = parseInt(page);
+
+        //consulta con moongose paginate
+        let itemsPerPage = 5;
+
+        const options = {
+            page: page,
+            limit: itemsPerPage,
+            sort: {_id:1},
+        }
+
+        const result = await user.paginate({}, options)
+
+        if(!result || result.length == 0) {
+            return res.status(404).json({
+                status: "error",
+                message: "error en la consulta"
+            })
+        }
+
+        //devolver resultado con la pagina
+            return res.status(200).send({
+            status: "success",
+            message: "ruta de usuarios.",
+            users: result.docs,
+            page: result.page,
+            itemsPerPage: result.limit,
+            total: result.totalDocs,
+            pages: result.totalPages
+             })
+             
+    } catch(e){
+        return res.status(500).json({
+            status: "error",
+            message: "Error interno del servidor",
+        }); 
+    }
+}
+
+
+//Actualizar perfil
+const update = async (req, res) => {
+
 }
 //Exportar
 module.exports = {
     pruebaUser,
     register,
     login,
-    profile
+    profile,
+    list
 }

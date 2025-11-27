@@ -15,10 +15,11 @@ exports.auth = async (req, res, next) => {
         if(!req.headers.authorization){
             return res.status(403).send({
                 sttus: "error",
-                message: "La peticion no tiene el header de auth"
+                message: "La peticion no tiene el header de auth, osea el token."
             })
         }
 
+        //si todo va bien
         //Decodificar el token
         let token = req.headers.authorization.replace(/['"]+/g, '')
 
