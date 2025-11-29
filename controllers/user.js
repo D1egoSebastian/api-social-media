@@ -112,11 +112,13 @@ const login = async (req, res) => {
 
         //Comprobar su password
         const pwd = bcrypt.compareSync(params.password, userToFind.password)
+        let test = userToFind.password
 
         if(!pwd) {
             return res.status(404).json({
                 status: "error",
-                message: "Los datos son invalidos"
+                message: "Los datos son invalidos",
+                test
             })   
         }
 
@@ -131,7 +133,8 @@ const login = async (req, res) => {
             userToFind : {
                 name: userToFind.name,
                 nick: userToFind.nick,
-                id: userToFind._id
+                id: userToFind._id,
+                image: userToFind.image
             },
             token
         })
@@ -227,13 +230,96 @@ const list = async (req, res) => {
 
 //Actualizar perfil
 const update = async (req, res) => {
+    try {
+        //recoger info del usuario del token
+        const userIdentity = req.user;
+        const userToUpdate = req.body;
 
+        //Eliminar campos sobrantes
+        delete userToUpdate.iat;
+        delete userToUpdate.exp;
+        delete userToUpdate.role;
+        delete userToUpdate.image;
+
+        //Comprobar si ya existe email o nick (si vienen en el body)
+        if (userToUpdate.email || userToUpdate.nick) {
+
+            const userToFind = await User.find({
+                $or: [
+                    { email: userToUpdate.email?.toLowerCase() },
+                    { nick: userToUpdate.nick?.toLowerCase() }
+                ]
+            });
+
+            let UserIsset = false;
+
+            userToFind.forEach(user => {
+                if (user && user.id != userIdentity.id) {
+                    UserIsset = true;
+                }
+            });
+
+            if (UserIsset) {
+                return res.status(400).json({
+                    status: "error",
+                    message: "El usuario ya existe"
+                });
+            }
+        }
+
+        //Si hay contraseña, cifrarla
+        if (userToUpdate.password) {
+            userToUpdate.password = await bcrypt.hash(userToUpdate.password, 10);
+        }
+
+
+        //Buscar y actualizar
+        let userUpdated = await user.findByIdAndUpdate(userIdentity.id, userToUpdate, {new:true})
+
+        if(!userUpdated){
+            return res.status(500).json({
+                status: "error",
+                message: "Error al actualizarr",
+            });            
+        }
+
+            //devolver respuesta
+            return res.status(200).json({
+            status: "success",
+            message: "Datos recibidos correctamente",
+            data: userToUpdate
+        });
+
+
+
+    } catch (e) {
+        return res.status(500).json({
+            status: "error",
+            message: "Error interno del servidor",
+            error: e.message
+        });
+    }
+};
+
+const upload = async (req, res) => {
+    return res.status(200).send({
+        status: "succed",
+        message: "ruta de subir archivos.",
+        user : req.user,
+        files: req.files,
+        file: req.file
+    })
 }
+
+
+
 //Exportar
 module.exports = {
     pruebaUser,
     register,
     login,
     profile,
-    list
+    list,
+    update,
+    upload
 }
