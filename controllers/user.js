@@ -4,7 +4,9 @@ const mongoose = require("mongoose")
 const bcrypt = require("bcrypt");
 const user = require("../models/user");
 const jwt = require("../services/jwt");
-const mongoosePagination = require("mongoose-paginate-v2")
+const mongoosePagination = require("mongoose-paginate-v2");
+const path = require("path");
+const fs = require("fs/promises");
 
 //Acciones de prueba
 const pruebaUser = (req, res) => {
@@ -302,13 +304,75 @@ const update = async (req, res) => {
 };
 
 const upload = async (req, res) => {
+
+    //Recoger el fichero de imagen y comprobar que existe
+    if(!req.file){
+        return res.status(404).send({
+            status: "error",
+            message: "la peticion no incluye la imagen."
+        })
+    }
+
+    //Conseguir el nombre del archivo
+    let image = req.file.originalname;
+
+    //Sacar la extension
+    let imageSplit = image.split("\.");
+    let extension = imageSplit[1];
+
+    //Comprobar extension
+    if(extension != "png" && extension != "jpg" && extension != "gif"){
+
+          //SI no es correcto borrar
+        const filePath = req.file.path;
+        const fileDeleted = fs.unlinkSync(filePath)
+        return res.status(400).send({
+            status: "error",
+            message: "extension invalida."
+        })
+    }
+
+  
+
+    //Si es correcto guardar imagen en bd
+
+    let userImage = await user.findByIdAndUpdate(req.user.id, {image: req.file.filename}, {new: true})
+    
+    if(!userImage){
+            return res.status(400).send({
+            status: "error",
+            message: "error al actualizar imagen."
+        })       
+    }
+
     return res.status(200).send({
-        status: "succed",
-        message: "ruta de subir archivos.",
-        user : req.user,
-        files: req.files,
-        file: req.file
+        status: "success",
+        user : userImage,
+        file: req.file,
+        image
     })
+}
+
+const avatar = async (req, res) => {
+    try {
+        const file = req.params.file;
+
+        // Ruta absoluta REAL
+        const filePath = path.join(__dirname, "..", "uploads", "avatars", file);
+        console.log("dirname:", __dirname);
+
+
+        console.log("Buscando:", filePath);
+
+        await fs.stat(filePath);
+
+        return res.sendFile(filePath);
+    } catch (e) {
+        return res.status(404).send({
+            status: "error",
+            message: "No existe"
+        });
+    }
 }
 
 
@@ -321,5 +385,6 @@ module.exports = {
     profile,
     list,
     update,
-    upload
+    upload,
+    avatar
 }

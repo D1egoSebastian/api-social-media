@@ -3,15 +3,17 @@ const router = express.Router();
 const UserController = require("../controllers/user")
 const check = require("../middlewares/auth")
 const multer = require("multer")
+const path = require ("path")
 
 //configuracion de subida (donde iran los archivos) (que nombre tendran)
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        cb(null, "./uploads/avatars/")
+        cb(null, path.join(__dirname, "..", "uploads", "avatars"));
+
     },
 
     filename: (req, file, cb) => {
-        cb(null, "avatar-"+Date.name()+"-"+file.originalname)
+        cb(null, "avatar-"+Date.now()+"-"+file.originalname)
     }
 });
 
@@ -25,6 +27,7 @@ router.get("/profile/:id", check.auth, UserController.profile);
 router.get("/list/:page", check.auth, UserController.list)
 router.put("/update", check.auth, UserController.update) //en el checkauth ya tendra el usuario a editar por lo tanto no es necesario el /:id
 router.post("/upload", [check.auth, uploads.single("file0")], UserController.upload)
+router.get("/avatar/:file", check.auth, UserController.avatar)
 
 //Exportar router
 
