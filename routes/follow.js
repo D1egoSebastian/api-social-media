@@ -1,9 +1,12 @@
 const express = require("express");
 const router = express.Router();
-const UserController = require("../controllers/follow")
+const FollowController = require("../controllers/follow")
+const check = require("../middlewares/auth")
+
 
 //definir rutas
-router.get("/prueba-follow", UserController.pruebaFollow)
+router.post("/save", check.auth, FollowController.Save)
+router.delete("/unfollow/:id", check.auth, FollowController.unfollow)
 
 //Exportar router
 

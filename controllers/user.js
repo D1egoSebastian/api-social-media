@@ -276,7 +276,7 @@ const update = async (req, res) => {
 
 
         //Buscar y actualizar
-        let userUpdated = await user.findByIdAndUpdate(userIdentity.id, userToUpdate, {new:true})
+        let userUpdated = await user.findByIdAndUpdate({_id: userIdentity.id}, userToUpdate, {new:true})
 
         if(!userUpdated){
             return res.status(500).json({
@@ -336,7 +336,7 @@ const upload = async (req, res) => {
 
     //Si es correcto guardar imagen en bd
 
-    let userImage = await user.findByIdAndUpdate(req.user.id, {image: req.file.filename}, {new: true})
+    let userImage = await user.findByIdAndUpdate({_id :req.user.id}, {image: req.file.filename}, {new: true})
     
     if(!userImage){
             return res.status(400).send({
