@@ -1,5 +1,6 @@
 const Follow = require("../models/follow");
-const User = require("../models/user")
+const User = require("../models/user");
+const mongoosePaginate = require("mongoose-paginate-v2")
 
 //Acciones de prueba
 const pruebaFollow = (req, res) => {
@@ -89,13 +90,70 @@ const unfollow = async (req, res) => {
 };
 
 
-//Accion listado de usuario que estoy siguiendo
-
 //Accion listado de usuario que me siguen
+const followers = async (req, res) => {
+    try {
+            return res.status(200).send({
+            status: "success",
+            message: "ruta de following de usuarios me siguen"
+        });
+    }catch(e){
+        return res.status(500).send({
+            status: "error",
+            message: "Error del servidor",
+            error: e.message
+        });
+    }
+}
+
+
+//Accion listado de usuario que cualquier usuario que esta siguiendo
+const following = async (req, res) => {
+    try {
+
+        //sacar el id del usuario identificado
+        let userId = req.user.id;
+
+        //comprobar si me llega el id por parametro
+        let params = req.params.id;
+        if(params) {
+            userId = req.params.id //tiene prioridad porque es el usuario que nos interesa saber los followers
+        }
+
+        //comprobar si me llega la pagina, default es la pag 1
+        let page = 1;
+        if(req.params.page){
+            page = req.params.page;
+        }
+
+        //cuantos elementos por pagina quiero mostrar
+        const itemsPerPage = 5;
+
+        //find a follow, popular los datos de los usuarios y paginar con moongose paginate
+        let follows = await Follow.find({user: userId}).populate("user followed", "name")
+        .paginate(page, itemsPerPage)
+        
+        //Listado de usuarios de {usuario identificado} 
+        //Sacar un array de ids de los usuarios que me siguen y los que sigo
+            return res.status(200).send({
+            status: "success",
+            message: "ruta de usuarios que sigo",
+            follows
+        });
+    }catch(e){
+        return res.status(500).send({
+            status: "error",
+            message: "Error del servidor",
+            error: e.message
+        });
+    }
+}
 
 //Exportar
 module.exports = {
     pruebaFollow,
     Save,
-    unfollow
+    unfollow,
+    following,
+    followers
 }
