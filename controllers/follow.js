@@ -1,6 +1,8 @@
 const Follow = require("../models/follow");
 const User = require("../models/user");
 const mongoosePaginate = require("mongoose-paginate-v2")
+//importar followservice
+const followService = require("../services/followUserIds")
 
 //Acciones de prueba
 const pruebaFollow = (req, res) => {
@@ -91,63 +93,101 @@ const unfollow = async (req, res) => {
 
 
 //Accion listado de usuario que me siguen
+//Accion listado de usuarios que ME SIGUEN
 const followers = async (req, res) => {
     try {
-            return res.status(200).send({
+
+        // ID del usuario (si no envían id → usa el autenticado)
+        let userId = req.params.id || req.user.id;
+
+        // Página
+        let page = req.params.page ? parseInt(req.params.page) : 1;
+
+        // Cantidad por página
+        const itemsPerPage = 5;
+
+        // Buscar usuarios que ME SIGUEN
+        let follows = await Follow.paginate(
+            { followed: userId },   
+            {
+                page: page,
+                limit: itemsPerPage,
+                populate: [
+                    { path: "user", select: "name nick image" },       // El que me sigue
+                    { path: "followed", select: "name nick image" }    // Yo
+                ],
+                sort: { _id: -1 }
+            }
+        );
+
+        // IDs procesados de seguimiento
+        let followUserIds = await followService.followuserIds(userId);
+
+        return res.status(200).send({
             status: "success",
-            message: "ruta de following de usuarios me siguen"
+            message: "Usuarios que ME SIGUEN",
+            follows,
+            user_following: followUserIds.following, // yo sigo a...
+            user_follow_me: followUserIds.followers  // me siguen...
         });
-    }catch(e){
+
+    } catch (e) {
         return res.status(500).send({
             status: "error",
             message: "Error del servidor",
             error: e.message
         });
     }
-}
+};
+
 
 
 //Accion listado de usuario que cualquier usuario que esta siguiendo
 const following = async (req, res) => {
     try {
+        // Id del usuario
+        let userId = req.params.id || req.user.id;
 
-        //sacar el id del usuario identificado
-        let userId = req.user.id;
+        // Página
+        let page = req.params.page ? parseInt(req.params.page) : 1;
 
-        //comprobar si me llega el id por parametro
-        let params = req.params.id;
-        if(params) {
-            userId = req.params.id //tiene prioridad porque es el usuario que nos interesa saber los followers
-        }
-
-        //comprobar si me llega la pagina, default es la pag 1
-        let page = 1;
-        if(req.params.page){
-            page = req.params.page;
-        }
-
-        //cuantos elementos por pagina quiero mostrar
+        // Cantidad por página
         const itemsPerPage = 5;
 
-        //find a follow, popular los datos de los usuarios y paginar con moongose paginate
-        let follows = await Follow.find({user: userId}).populate("user followed", "name")
-        .paginate(page, itemsPerPage)
-        
-        //Listado de usuarios de {usuario identificado} 
-        //Sacar un array de ids de los usuarios que me siguen y los que sigo
-            return res.status(200).send({
+        // Paginar directamente en el modelo
+        let follows = await Follow.paginate(
+            { user: userId },
+            {
+                page: page,
+                limit: itemsPerPage,
+                populate: [
+                    { path: "user", select: "name nick image" },
+                    { path: "followed", select: "name nick image" }
+                ],
+                sort: { _id: -1 }
+            }
+        );
+
+        // IDs de usuarios que sigue / seguidores
+        let followUserIds = await followService.followuserIds(userId);
+
+        return res.status(200).send({
             status: "success",
-            message: "ruta de usuarios que sigo",
-            follows
+            message: "Usuarios que sigo",
+            follows,
+            user_following: followUserIds.following,
+            user_follow_me: followUserIds.followers
         });
-    }catch(e){
+
+    } catch (e) {
         return res.status(500).send({
             status: "error",
             message: "Error del servidor",
             error: e.message
         });
     }
-}
+};
+
 
 //Exportar
 module.exports = {

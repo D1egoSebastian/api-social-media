@@ -7,6 +7,7 @@ const jwt = require("../services/jwt");
 const mongoosePagination = require("mongoose-paginate-v2");
 const path = require("path");
 const fs = require("fs/promises");
+const followService = require("../services/followUserIds")
 
 //Acciones de prueba
 const pruebaUser = (req, res) => {
@@ -164,9 +165,14 @@ const profile = async (req, res) => {
                 })
             }
 
+            //info de seguimiento
+            const followInfo = await followService.followThisUser(req.user.id, id)
+
             return res.status(200).send({
                 status: "success",
-                user: userProfile
+                user: userProfile,
+                following: followInfo.following,
+                follower: followInfo.follower
             })
            
            
@@ -208,7 +214,9 @@ const list = async (req, res) => {
                 status: "error",
                 message: "error en la consulta"
             })
-        }
+        }   
+
+        let followUserIds = await followService.followuserIds(req.user.id)
 
         //devolver resultado con la pagina
             return res.status(200).send({
@@ -218,8 +226,11 @@ const list = async (req, res) => {
             page: result.page,
             itemsPerPage: result.limit,
             total: result.totalDocs,
-            pages: result.totalPages
+            pages: result.totalPages,
+            user_following: followUserIds.following,
+            user_follow_me: followUserIds.followers
              })
+
              
     } catch(e){
         return res.status(500).json({
