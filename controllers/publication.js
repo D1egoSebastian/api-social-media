@@ -1,5 +1,7 @@
+const publication = require("../models/publication");
 const Publication = require ("../models/publication")
-
+const fs = require("fs")
+const path = require("path");
 //Acciones de prueba
 const pruebaPublication = (req, res) => {
     return res.status(200).send({
@@ -148,13 +150,88 @@ const user = async (req, res) => {
              
 }
 
-//Listar las publicaciones (de quienes sigo) (feed)
-
-
 //Subir ficheros
 
-//Devolver archivos multimedia imagenes
+const upload = async (req, res) => {
 
+    //sacar publication id;
+
+    let publicationId = req.params.id
+
+    //Recoger el fichero de imagen y comprobar que existe
+    if(!req.file){
+        return res.status(404).send({
+            status: "error",
+            message: "la peticion no incluye la imagen."
+        })
+    }
+
+    //Conseguir el nombre del archivo
+    let image = req.file.originalname;
+
+    //Sacar la extension
+    let imageSplit = image.split("\.");
+    let extension = imageSplit[1];
+
+    //Comprobar extension
+    if(extension != "png" && extension != "jpg" && extension != "gif"){
+
+          //SI no es correcto borrar
+        const filePath = req.file.path;
+        const fileDeleted = fs.unlinkSync(filePath)
+        return res.status(400).send({
+            status: "error",
+            message: "extension invalida."
+        })
+    }
+
+  
+
+    //Si es correcto guardar imagen en bd
+
+    let publicationImage = await publication.findByIdAndUpdate({"user" :req.user.id, "_id": publicationId}, {file: req.file.filename}, {new: true})
+    
+    if(!publicationImage){
+            return res.status(400).send({
+            status: "error",
+            message: "error al actualizar imagen."
+        })       
+    }
+
+    return res.status(200).send({
+        status: "success",
+        file: req.file,
+        publication: publicationImage
+    })
+}
+
+
+
+//Devolver archivos multimedia imagenes
+const media = async (req, res) => {
+    try {
+        const file = req.params.file;
+
+        // Ruta absoluta REAL
+        const filePath = path.join(__dirname, "..", "uploads", "publications", file);
+        console.log("dirname:", __dirname);
+
+
+        console.log("Buscando:", filePath);
+
+        await fs.stat(filePath);
+
+        return res.sendFile(filePath);
+    } catch (e) {
+        return res.status(404).send({
+            status: "error",
+            message: "No existe"
+        });
+    }
+}
+
+
+//Listar las publicaciones (de quienes sigo) (feed)
 
 
 //Exportar
@@ -163,5 +240,7 @@ module.exports = {
     save,
     detail,
     remove,
-    user
+    user,
+    upload,
+    media
 }
