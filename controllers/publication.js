@@ -2,6 +2,7 @@ const publication = require("../models/publication");
 const Publication = require ("../models/publication")
 const fs = require("fs")
 const path = require("path");
+const followService = require("../services/followUserIds")
 //Acciones de prueba
 const pruebaPublication = (req, res) => {
     return res.status(200).send({
@@ -131,7 +132,7 @@ const user = async (req, res) => {
 
     let Publicaciones = await Publication.find({user: userId})
     .sort("-created_at")
-    .populate("user", "-password")
+    .populate("user", "-password -__v -role -email")
 
     if(!Publicaciones || Publicaciones.length == 0) {
         return res.status(500).json({
@@ -147,7 +148,7 @@ const user = async (req, res) => {
                 user: req.user,
                 Publicaciones
             })
-             
+            
 }
 
 //Subir ficheros
@@ -232,6 +233,46 @@ const media = async (req, res) => {
 
 
 //Listar las publicaciones (de quienes sigo) (feed)
+const feed = async (req, res) => {
+
+    //sacar la pagina actual
+    let page = 1;
+
+    if(req.params.page) {
+        page = req.params.page
+    }
+
+    //establecer numero de elem por paginas
+    let itemsPerPage = 5;
+
+    //sacar array de id de personas que sigo como usuario identificado
+    try{
+        const myFollows = await followService.followuserIds(req.user.id)
+
+        //find a publicaciones in, ordernar, popular, paginar
+        let PublicationToFeed = await Publication.find({
+            user: myFollows.following
+            
+        }).populate("user", "-password -role -__v -email").sort("-created_at")
+
+
+        return res.status(200).send({
+                status: "succed",
+                message: "ruta del feed",
+                myFollows: myFollows.following,
+                PublicationToFeed
+            })
+            
+    }catch(e){
+        return res.status(500).send({
+                status: "error",
+                message: "No se han listado las publicaciones del Feed"
+            })
+    }
+    
+    
+        
+}
 
 
 //Exportar
@@ -242,5 +283,6 @@ module.exports = {
     remove,
     user,
     upload,
-    media
+    media,
+    feed
 }

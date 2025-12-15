@@ -29,6 +29,8 @@ router.get("/user/:id", check.auth, PublicationController.user)
 router.get("/user/:id/:page", check.auth, PublicationController.user)
 router.post("/upload/:id", [check.auth, uploads.single("file0")], PublicationController.upload)
 router.get("/media/:file", check.auth, PublicationController.media)
+router.get("/feed", check.auth, PublicationController.feed)
+router.get("/feed/:page", check.auth, PublicationController.feed)
 
 //Exportar router
 

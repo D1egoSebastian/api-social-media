@@ -28,6 +28,7 @@ router.get("/list/:page", check.auth, UserController.list)
 router.put("/update", check.auth, UserController.update) //en el checkauth ya tendra el usuario a editar por lo tanto no es necesario el /:id
 router.post("/upload", [check.auth, uploads.single("file0")], UserController.upload)
 router.get("/avatar/:file", check.auth, UserController.avatar)
+router.get("/counters/:id", check.auth, UserController.counters)
 
 //Exportar router
 

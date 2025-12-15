@@ -7,7 +7,8 @@ const jwt = require("../services/jwt");
 const mongoosePagination = require("mongoose-paginate-v2");
 const path = require("path");
 const fs = require("fs/promises");
-const followService = require("../services/followUserIds")
+const followService = require("../services/followUserIds");
+const publication = require("../models/publication");
 
 //Acciones de prueba
 const pruebaUser = (req, res) => {
@@ -240,6 +241,38 @@ const list = async (req, res) => {
     }
 }
 
+const counters = async (req, res) => {
+    let userId = req.user.id;
+
+    if(req.params.id) {
+        userId = req.params.id
+    }
+
+
+    try{
+
+        const following = await follow.count({"user": userId});
+        const followed = await follow.count({"followed": userId})
+        const publications = await publication.count({"user": userId})
+
+        return res.status(200).send({
+            status: "success",
+            message: "info del endpoing counters",
+            userId,
+            following: following,
+            followed: followed,
+            publications: publications
+            })
+
+    } catch(e){
+        return res.status(400).json({
+            status: "error",
+            message: "Error en el endpoint counter",
+        }); 
+}
+
+}
+
 
 //Actualizar perfil
 const update = async (req, res) => {
@@ -397,5 +430,6 @@ module.exports = {
     list,
     update,
     upload,
-    avatar
+    avatar,
+    counters
 }
