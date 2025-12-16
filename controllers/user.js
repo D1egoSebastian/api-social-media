@@ -9,6 +9,7 @@ const path = require("path");
 const fs = require("fs/promises");
 const followService = require("../services/followUserIds");
 const publication = require("../models/publication");
+const validate = require("../helpers/validate")
 
 //Acciones de prueba
 const pruebaUser = (req, res) => {
@@ -37,6 +38,16 @@ const register = async (req, res) => {
         }
 
 
+        //usando validator
+        try{
+            validate.validate(params)
+        } catch(e){
+            return res.status(400).json({
+                status: "error",
+                message: "validacion no superada."
+            })
+        }
+        
 
         //Control de usuarios duplicados (antes de guardar revisar si existe)
 
@@ -99,6 +110,9 @@ const login = async (req, res) => {
                 message: "Faltan datos por enviar"
             })
         }
+
+        
+
 
         //Revisar si existe en la db
         const userToFind = await User.findOne({
